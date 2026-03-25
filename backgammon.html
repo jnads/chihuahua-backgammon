@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chihuahua Backgammon 🐕</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bd:  #3a1a04;
+  --bm:  #7c4a1e;
+  --bl:  #b5763a;
+  --tan: #d4a96a;
+  --cream:#f5e6c8;
+  --ww:  #fdf6e3;
+  --red: #c0392b;
+  --gold:#c8962a;
+  --hi:  #f39c12;
+  --vm:  rgba(46,204,113,0.75);
+  --sel: rgba(243,156,18,0.30);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Nunito',sans-serif;
+  background:linear-gradient(135deg,#1e0d02 0%,#4a2810 50%,#1e0d02 100%);
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 10px 30px;color:var(--cream);
+}
+h1{font-size:1.9rem;font-weight:900;color:var(--tan);text-shadow:2px 2px 8px #0006;
+   margin-bottom:4px;letter-spacing:1px}
+.sub{font-size:.8rem;color:var(--bl);margin-bottom:12px}
+
+/* ── status bar ── */
+#sbar{display:flex;align-items:center;justify-content:space-between;width:100%;
+  max-width:900px;background:#0005;border:1px solid var(--bm);border-radius:12px;
+  padding:8px 16px;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.pinfo{display:flex;align-items:center;gap:8px;font-size:.88rem;font-weight:700}
+.pinfo small{font-weight:400;font-size:.72rem;color:var(--bl);display:block}
+#turn{font-size:.95rem;font-weight:800;color:var(--hi);text-align:center;flex:1}
+
+/* ── dice ── */
+#dice-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.die{width:50px;height:50px;background:var(--ww);border:3px solid var(--bd);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:1.7rem;
+  box-shadow:3px 3px 8px #0009,inset 0 1px 2px #fff8;transition:.15s;user-select:none}
+.die.used{opacity:.3;transform:scale(.86)}
+.die.ai-die{border-color:var(--red)}
+#roll-btn{background:linear-gradient(135deg,var(--hi),#e67e22);color:#fff;border:none;
+  border-radius:10px;padding:11px 26px;font-family:'Nunito',sans-serif;font-size:1rem;
+  font-weight:800;cursor:pointer;box-shadow:0 4px 12px #0005;transition:.1s;letter-spacing:.5px}
+#roll-btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px #0006}
+#roll-btn:active{transform:none}
+#roll-btn:disabled{opacity:.4;cursor:default;transform:none}
+
+/* ── board wrapper ── */
+#bwrap{width:100%;max-width:900px}
+
+/* label rows */
+.lrow{display:grid;grid-template-columns:1fr 54px 1fr;width:100%;max-width:900px;
+  padding:0 12px}
+.lhalf{display:grid;grid-template-columns:repeat(6,1fr)}
+.lhalf span{text-align:center;font-size:.6rem;font-weight:700;color:var(--bl)}
+
+/* board */
+#board{background:var(--bd);border:4px solid var(--bm);border-radius:14px;
+  padding:8px;box-shadow:0 8px 32px #0009;
+  display:grid;grid-template-columns:1fr 54px 1fr;width:100%}
+
+/* point halves */
+.half{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:3px}
+
+/* bar */
+#bar{background:#2a0f02;border-left:3px solid var(--bm);border-right:3px solid var(--bm);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:4px 0;z-index:1}
+.barsec{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px;
+  justify-content:center;cursor:pointer;border-radius:5px;padding:3px 4px;
+  transition:.15s;width:100%;text-align:center}
+.barsec:hover{background:#fff2}
+.barsec.hi-bar{background:var(--vm)}
+.barlbl{font-size:.5rem;font-weight:700;color:var(--bl);text-transform:uppercase;letter-spacing:.5px}
+
+/* point */
+.pt{position:relative;display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;border-radius:3px;transition:.12s;min-height:170px;padding:2px;overflow:visible}
+.pt:hover{background:#fff06}
+.pt.sel{background:var(--sel)!important}
+.pt.vt{background:var(--vm)!important;cursor:pointer}
+.pt.vt:hover{filter:brightness(1.15)}
+.pt.bot{flex-direction:column-reverse}
+.ptnum{position:absolute;font-size:.55rem;font-weight:700;color:#fff5;pointer-events:none}
+.pt:not(.bot) .ptnum{bottom:2px}
+.pt.bot .ptnum{top:2px}
+/* triangle */
+.tri{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none}
+
+/* checker */
+.ck{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1.25rem;border:2.5px solid #0006;
+  box-shadow:0 2px 6px #0005,inset 0 1px 3px #fff3;position:relative;z-index:2;
+  flex-shrink:0;user-select:none;transition:transform .1s;line-height:1}
+.ck:hover{transform:scale(1.08)}
+.ck.h{background:radial-gradient(circle at 35% 35%,#f0d090,#c8962a);border-color:#7a4f0a}
+.ck.a{background:radial-gradient(circle at 35% 35%,#e05050,#8b1a1a);border-color:#500808}
+.cnt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:900;pointer-events:none;z-index:5;
+  text-shadow:0 1px 3px #0008}
+.ck.h .cnt{color:#3a1a04}
+.ck.a .cnt{color:#fde8e6}
+
+/* bear-off */
+#boff{display:flex;gap:10px;width:100%;max-width:900px;margin-top:8px}
+.tray{flex:1;background:#0004;border:2px solid var(--bm);border-radius:10px;
+  padding:7px 10px;min-height:50px;display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.tray-lbl{font-size:.68rem;color:var(--bl);font-weight:700;margin-right:4px;white-space:nowrap}
+.tray .ck{width:26px;height:26px;font-size:.9rem}
+
+/* hint */
+#hint{margin-top:8px;background:#0004;border:1px solid var(--bm);border-radius:8px;
+  padding:5px 14px;font-size:.78rem;color:var(--bl);font-weight:700;text-align:center;
+  max-width:900px;width:100%}
+
+/* modal */
+#modal{display:none;position:fixed;inset:0;background:#0009;z-index:100;
+  align-items:center;justify-content:center}
+#modal.show{display:flex}
+.minner{background:linear-gradient(135deg,#5a3010,#2c1000);border:3px solid var(--tan);
+  border-radius:18px;padding:36px 44px;text-align:center;max-width:360px;
+  box-shadow:0 16px 48px #000a}
+.minner h2{font-size:1.9rem;color:var(--tan);margin-bottom:8px}
+.minner p{font-size:.95rem;color:var(--cream);margin-bottom:20px}
+.minner button{background:linear-gradient(135deg,var(--hi),#e67e22);color:#fff;
+  border:none;border-radius:10px;padding:12px 30px;font-family:'Nunito',sans-serif;
+  font-size:1rem;font-weight:800;cursor:pointer}
+
+@media(max-width:600px){
+  h1{font-size:1.3rem}
+  .ck{width:27px;height:27px;font-size:1rem}
+  .pt{min-height:120px}
+  #roll-btn{padding:9px 18px;font-size:.88rem}
+  .die{width:42px;height:42px;font-size:1.4rem}
+}
+</style>
+</head>
+<body>
+
+<h1>🐕 Chihuahua Backgammon 🐕</h1>
+<p class="sub">Woof! Roll dice · click a checker · click a destination</p>
+
+<div id="sbar">
+  <div class="pinfo">
+    <span style="font-size:1.4rem">🐕</span>
+    <div>
+      <div>You <span style="color:var(--gold)">(Gold)</span></div>
+      <small>Pips: <span id="hp">167</span></small>
+    </div>
+  </div>
+  <div id="turn">Roll to start!</div>
+  <div class="pinfo" style="flex-direction:row-reverse">
+    <span style="font-size:1.4rem;filter:hue-rotate(300deg) saturate(1.5)">🐕</span>
+    <div style="text-align:right">
+      <div>AI <span style="color:#e06060">(Red)</span></div>
+      <small>Pips: <span id="ap">167</span></small>
+    </div>
+  </div>
+</div>
+
+<div id="dice-row">
+  <div class="die" id="d1">🎲</div>
+  <div class="die" id="d2">🎲</div>
+  <button id="roll-btn" onclick="rollDice()">Roll Dice 🎲</button>
+</div>
+
+<!-- point numbers top -->
+<div class="lrow" id="tlabels">
+  <div class="lhalf" id="tll"></div>
+  <div></div>
+  <div class="lhalf" id="tlr"></div>
+</div>
+
+<div id="bwrap">
+  <div id="board">
+    <div class="half" id="tl"></div><!-- top-left  pts 24-19 -->
+    <div id="bar">
+      <div class="barsec" id="bar-ai" onclick="clickBarAI()">
+        <div class="barlbl">BAR</div>
+        <div id="bai"></div>
+      </div>
+      <div class="barlbl" style="color:#fff3;font-size:.5rem">◆</div>
+      <div class="barsec" id="bar-hu" onclick="clickBarHu()">
+        <div id="bhu"></div>
+        <div class="barlbl">BAR</div>
+      </div>
+    </div>
+    <div class="half" id="tr"></div><!-- top-right pts 18-13 -->
+    <div class="half" id="bl"></div><!-- bot-left  pts 1-6   -->
+    <div class="half" id="br"></div><!-- bot-right pts 7-12  -->
+  </div>
+</div>
+
+<!-- point numbers bottom -->
+<div class="lrow" id="bllabels">
+  <div class="lhalf" id="bll"></div>
+  <div></div>
+  <div class="lhalf" id="blr"></div>
+</div>
+
+<div id="boff">
+  <div class="tray" id="tray-h">
+    <span class="tray-lbl">🏠 Borne off (You):</span>
+  </div>
+  <div class="tray" id="tray-a">
+    <span class="tray-lbl">🏠 Borne off (AI):</span>
+  </div>
+</div>
+
+<div id="hint">Click Roll Dice to begin!</div>
+
+<div id="modal">
+  <div class="minner">
+    <h2 id="mt">🐕</h2>
+    <p id="mb"></p>
+    <button onclick="newGame()">New Game 🐕</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CONSTANTS & LAYOUT
+// ══════════════════════════════════════════════════════════════
+// Board numbering: standard backgammon from human's perspective.
+// Human (gold) moves 24 → 1, bears off below point 1.
+// AI   (red)  moves  1 → 24, bears off above point 24.
+//
+// Visual layout (left→right):
+//   Top row:    pts 24,23,22,21,20,19 | bar | 18,17,16,15,14,13
+//   Bottom row: pts  1, 2, 3, 4, 5, 6 | bar |  7, 8, 9,10,11,12
+
+const LAYOUT = {
+  tl: { pts:[24,23,22,21,20,19], top:true  },
+  tr: { pts:[18,17,16,15,14,13], top:true  },
+  bl: { pts:[ 1, 2, 3, 4, 5, 6], top:false },
+  br: { pts:[ 7, 8, 9,10,11,12], top:false },
+};
+
+const TRI_COLORS = ['#8b1a1a','#c8a020']; // alternating dark red / gold
+
+const FACES = {1:'⚀',2:'⚁',3:'⚂',4:'⚃',5:'⚄',6:'⚅'};
+
+// ══════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════
+let G = {};   // game state
+
+function newGame() {
+  hideModal();
+  G = {
+    // board[1..24]: {n:count, p:'h'|'a'|null}
+    board: Array.from({length:26}, () => ({n:0, p:null})),
+    bar:   {h:0, a:0},
+    off:   {h:0, a:0},
+    dice:  [],        // [d1,d2] or [d,d,d,d]
+    used:  [],        // bool array parallel to dice
+    cur:   'h',      // 'h' human, 'a' ai
+    phase: 'roll',   // 'roll'|'move'|'over'
+    sel:   null,     // null | {src:'bar'|number}
+    vms:   [],       // [{from,to,die}] valid moves for selection
+  };
+  // Human checkers (gold) start: 24×2, 13×5, 8×3, 6×5
+  place(24,2,'h'); place(13,5,'h'); place(8,3,'h'); place(6,5,'h');
+  // AI checkers (red)   start: 1×2, 12×5, 17×3, 19×5
+  place(1,2,'a');  place(12,5,'a'); place(17,3,'a'); place(19,5,'a');
+
+  document.getElementById('d1').textContent = '🎲';
+  document.getElementById('d2').textContent = '🎲';
+  // clear extra dice
+  document.querySelectorAll('.die.extra').forEach(e=>e.remove());
+  hint('Roll the dice to start!');
+  render();
+}
+
+function place(pt, n, p) { G.board[pt].n = n; G.board[pt].p = p; }
+
+// ══════════════════════════════════════════════════════════════
+//  RULES
+// ══════════════════════════════════════════════════════════════
+const DIR = {h:-1, a:1};
+const HOME = {h:[1,6], a:[19,24]};
+
+function opponent(p) { return p==='h'?'a':'h'; }
+
+function availDice() {
+  return G.dice.reduce((acc,d,i) => { if(!G.used[i]) acc.push({d,i}); return acc; }, []);
+}
+
+function uniqueDice() {
+  const seen = new Set();
+  return availDice().filter(x => { if(seen.has(x.d)) return false; seen.add(x.d); return true; });
+}
+
+function allInHome(p) {
+  if (G.bar[p] > 0) return false;
+  const [lo,hi] = HOME[p];
+  for (let i=1; i<=24; i++) {
+    if (G.board[i].p === p && G.board[i].n > 0 && (i<lo || i>hi)) return false;
+  }
+  return true;
+}
+
+// Generate valid moves from a given source for player p.
+// src = 'bar' | point index (1-24)
+function movesFrom(src, p) {
+  const moves = [];
+  const dice = uniqueDice();
+
+  for (const {d, i: dieIdx} of dice) {
+    if (src === 'bar') {
+      // enter from bar: human enters on 25-d (points 24..19 when d=1..6)
+      //                 ai   enters on d      (points  1..6)
+      const to = p==='h' ? (25-d) : d;
+      if (to>=1 && to<=24 && !blocked(to,p)) {
+        moves.push({from:'bar', to, die:d, dieIdx});
+      }
+    } else {
+      const to = src + DIR[p]*d;
+      if (to>=1 && to<=24) {
+        if (!blocked(to,p)) moves.push({from:src, to, die:d, dieIdx});
+      } else if (allInHome(p)) {
+        // bearing off
+        const dist = p==='h' ? src : (25-src);   // distance to bear-off
+        if (d === dist) {
+          // exact
+          moves.push({from:src, to:'off', die:d, dieIdx});
+        } else if (d > dist) {
+          // overshoot – only legal if no checker on higher pip point
+          if (!checkerHigherThan(src, p)) {
+            moves.push({from:src, to:'off', die:d, dieIdx});
+          }
+        }
+      }
+    }
+  }
+  return moves;
+}
+
+// Is there a checker of player p on a point "further" from bearing off than src?
+function checkerHigherThan(src, p) {
+  if (p==='h') {
+    // human home 1-6; "higher" = larger point number than src (further from 0)
+    for (let i=src+1; i<=6; i++) {
+      if (G.board[i].p==='h' && G.board[i].n>0) return true;
+    }
+  } else {
+    // ai home 19-24; "higher" = smaller point number than src (further from 25)
+    for (let i=19; i<src; i++) {
+      if (G.board[i].p==='a' && G.board[i].n>0) return true;
+    }
+  }
+  return false;
+}
+
+function blocked(pt, p) {
+  const b = G.board[pt];
+  return b.p !== null && b.p !== p && b.n >= 2;
+}
+
+function isBlot(pt, p) {
+  const b = G.board[pt];
+  return b.p !== null && b.p !== p && b.n === 1;
+}
+
+// All legal moves for player p
+function allMoves(p) {
+  if (G.bar[p] > 0) return movesFrom('bar', p);
+  const acc = [];
+  for (let i=1;i<=24;i++) {
+    if (G.board[i].p===p && G.board[i].n>0) acc.push(...movesFrom(i,p));
+  }
+  return acc;
+}
+
+function applyMove(mv, p) {
+  // Mark die used
+  G.used[mv.dieIdx] = true;
+
+  // Remove from source
+  if (mv.from==='bar') {
+    G.bar[p]--;
+  } else {
+    G.board[mv.from].n--;
+    if (G.board[mv.from].n===0) G.board[mv.from].p=null;
+  }
+
+  // Bear off
+  if (mv.to==='off') {
+    G.off[p]++;
+    return;
+  }
+
+  // Hit blot?
+  const opp = opponent(p);
+  if (isBlot(mv.to, p)) {
+    G.board[mv.to].n = 0;
+    G.board[mv.to].p = null;
+    G.bar[opp]++;
+  }
+
+  // Land
+  if (G.board[mv.to].n===0) G.board[mv.to].p=p;
+  G.board[mv.to].n++;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DICE
+// ══════════════════════════════════════════════════════════════
+function rollDice() {
+  if (G.phase!=='roll' || G.cur!=='h') return;
+  const d1 = rand6(), d2 = rand6();
+  G.dice = d1===d2 ? [d1,d1,d1,d1] : [d1,d2];
+  G.used = G.dice.map(()=>false);
+  G.phase = 'move';
+  G.sel = null; G.vms = [];
+  animateDice(d1,d2, ()=>{
+    const legal = allMoves('h');
+    if (legal.length===0) {
+      hint('No legal moves — turn passes!');
+      setTimeout(endTurn, 1100);
+    } else {
+      hint('Click a gold checker to select it');
+    }
+    render();
+  });
+}
+
+function rand6() { return Math.ceil(Math.random()*6); }
+
+function animateDice(d1,d2, cb) {
+  // clear extra dice first
+  document.querySelectorAll('.die.extra').forEach(e=>e.remove());
+  const el1=document.getElementById('d1'), el2=document.getElementById('d2');
+  let t=0;
+  const iv=setInterval(()=>{
+    el1.textContent=FACES[rand6()]; el2.textContent=FACES[rand6()]; t++;
+    if(t>=7){
+      clearInterval(iv);
+      el1.textContent=FACES[d1]; el2.textContent=FACES[d2];
+      // Doubles: add extra 2 dice
+      if(G.dice.length===4){
+        const btn=document.getElementById('roll-btn');
+        for(let k=2;k<4;k++){
+          const ex=document.createElement('div');
+          ex.className='die extra';
+          ex.textContent=FACES[G.dice[k]];
+          btn.parentNode.insertBefore(ex,btn);
+        }
+      }
+      cb();
+    }
+  },55);
+}
+
+function syncDiceUI() {
+  const els=[
+    document.getElementById('d1'),
+    document.getElementById('d2'),
+    ...document.querySelectorAll('.die.extra')
+  ];
+  G.dice.forEach((d,i)=>{
+    const el=els[i]; if(!el) return;
+    el.textContent=FACES[d];
+    el.className='die'+(G.cur==='a'?' ai-die':'')+(els.length>2?' extra':'')+(G.used[i]?' used':'');
+    if(i<2) el.className=el.className.replace(' extra','');
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PIP COUNT
+// ══════════════════════════════════════════════════════════════
+function pipCount(p) {
+  let pips = G.bar[p]*25;
+  if(p==='h'){
+    for(let i=1;i<=24;i++) if(G.board[i].p==='h') pips+=G.board[i].n*i;
+  } else {
+    for(let i=1;i<=24;i++) if(G.board[i].p==='a') pips+=G.board[i].n*(25-i);
+  }
+  return pips;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TURN FLOW
+// ══════════════════════════════════════════════════════════════
+function endTurn() {
+  G.sel=null; G.vms=[];
+  G.dice=[]; G.used=[];
+  G.phase='roll';
+  G.cur=opponent(G.cur);
+  render();
+  if(G.cur==='a') setTimeout(aiRoll, 650);
+}
+
+function aiRoll() {
+  if(G.phase!=='roll') return;
+  const d1=rand6(), d2=rand6();
+  G.dice=d1===d2?[d1,d1,d1,d1]:[d1,d2];
+  G.used=G.dice.map(()=>false);
+  G.phase='move';
+  animateDice(d1,d2,()=>{
+    render();
+    const legal=allMoves('a');
+    if(legal.length===0){hint('AI has no moves — passing turn!'); setTimeout(endTurn,1000);}
+    else{ hint('AI is thinking…'); setTimeout(aiStep,600); }
+  });
+}
+
+function aiStep() {
+  if(G.phase!=='move'||G.cur!=='a') return;
+  const moves=allMoves('a');
+  if(moves.length===0){ setTimeout(endTurn,400); return; }
+
+  // Heuristics: 1) bear off  2) hit blot  3) make prime  4) advance
+  let mv = null;
+  const off = moves.filter(m=>m.to==='off');
+  if(off.length) { mv=off[Math.floor(Math.random()*off.length)]; }
+  if(!mv){
+    const hits=moves.filter(m=>m.to!=='off'&&isBlot(m.to,'a'));
+    if(hits.length) mv=hits[Math.floor(Math.random()*hits.length)];
+  }
+  if(!mv) mv=moves[Math.floor(Math.random()*moves.length)];
+
+  applyMove(mv,'a');
+  if(checkWin('a')){ G.phase='over'; render(); showModal('🐕 AI Wins! Woof!','The red chihuahua borne off all checkers. Try again?'); return; }
+  render();
+
+  const left=allMoves('a');
+  const dLeft=availDice().length;
+  if(dLeft>0&&left.length>0) setTimeout(aiStep,620);
+  else setTimeout(endTurn,500);
+}
+
+function checkWin(p){ return G.off[p]===15; }
+
+// ══════════════════════════════════════════════════════════════
+//  HUMAN INTERACTION
+// ══════════════════════════════════════════════════════════════
+function clickBarHu() {
+  if(G.phase!=='move'||G.cur!=='h') return;
+  if(G.bar.h===0){ hint('No checkers on the bar!'); return; }
+  G.sel={src:'bar'};
+  G.vms=movesFrom('bar','h');
+  hint(G.vms.length?'Click a highlighted point to enter':'No entry available — wait!');
+  render();
+}
+
+function clickBarAI() { /* AI bar — not interactive for human */ }
+
+function clickPt(pt) {
+  if(G.phase!=='move'||G.cur!=='h') return;
+
+  // Must move from bar first
+  if(G.bar.h>0){
+    hint('You must enter your bar checkers first! Click the BAR section.');
+    return;
+  }
+
+  // Is this a valid move target?
+  const mv=G.vms.find(m=>m.to===pt);
+  if(mv){ doHumanMove(mv); return; }
+
+  // Select if human checker here
+  if(G.board[pt].p==='h'&&G.board[pt].n>0){
+    G.sel={src:pt};
+    G.vms=movesFrom(pt,'h');
+    hint(G.vms.length?'Click a highlighted point or the bear-off tray':'No legal moves from this point');
+    render();
+    return;
+  }
+
+  // Clicked elsewhere — deselect
+  G.sel=null; G.vms=[];
+  hint('Click a gold checker to move');
+  render();
+}
+
+function clickBearOff() {
+  if(G.phase!=='move'||G.cur!=='h') return;
+  const mv=G.vms.find(m=>m.to==='off');
+  if(mv) doHumanMove(mv);
+}
+
+function doHumanMove(mv) {
+  applyMove(mv,'h');
+  G.sel=null; G.vms=[];
+  if(checkWin('h')){ G.phase='over'; render(); showModal('🐕 You Win! Woof!','Your golden chihuahua borne off all 15 checkers! Amazing!'); return; }
+  render();
+  const dLeft=availDice().length;
+  const left=allMoves('h');
+  if(dLeft===0||left.length===0){
+    if(dLeft>0) hint('No more legal moves available!');
+    setTimeout(endTurn,400);
+  } else {
+    hint('Click another checker to continue moving');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════════════
+function render() {
+  renderBoard();
+  renderBar();
+  renderBearOff();
+  syncDiceUI();
+  renderStatus();
+}
+
+function renderStatus() {
+  document.getElementById('hp').textContent=pipCount('h');
+  document.getElementById('ap').textContent=pipCount('a');
+  const t=document.getElementById('turn');
+  if(G.phase==='over') t.textContent='Game Over!';
+  else if(G.phase==='roll') t.textContent=G.cur==='h'?'🎲 Your turn — Roll!':'🎲 AI\'s turn…';
+  else t.textContent=G.cur==='h'?'🐕 Your move':'🤖 AI is moving…';
+  document.getElementById('roll-btn').disabled=G.phase!=='roll'||G.cur!=='h';
+}
+
+function renderBoard() {
+  for(const [id,{pts,top}] of Object.entries(LAYOUT)){
+    const cont=document.getElementById(id);
+    cont.innerHTML='';
+    pts.forEach((pt,col)=>{
+      cont.appendChild(makePoint(pt,top,col));
+    });
+  }
+  renderLabels();
+}
+
+function makePoint(pt, isTop, col) {
+  const isVT = G.vms.some(m=>m.to===pt);
+  const isSel= G.sel && G.sel.src===pt;
+
+  const div=document.createElement('div');
+  div.className='pt'+(isTop?'':' bot')+(isSel?' sel':'')+(isVT?' vt':'');
+  div.onclick=()=>clickPt(pt);
+  div.title=`Point ${pt}`;
+
+  // Triangle SVG
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('class','tri');
+  svg.setAttribute('viewBox','0 0 100 200');
+  svg.setAttribute('preserveAspectRatio','none');
+  const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  poly.setAttribute('points', isTop ? '0,0 100,0 50,188' : '0,200 100,200 50,12');
+  poly.setAttribute('fill', TRI_COLORS[col%2]);
+  poly.setAttribute('opacity','0.82');
+  svg.appendChild(poly);
+  div.appendChild(svg);
+
+  // Point number
+  const num=document.createElement('div');
+  num.className='ptnum'; num.textContent=pt;
+  div.appendChild(num);
+
+  // Checkers
+  const {n,p}=G.board[pt];
+  if(n>0&&p){
+    const MAX=5;
+    const show=Math.min(n,MAX);
+    const checkers=[];
+    for(let i=0;i<show;i++){
+      const c=makeChecker(p, i===0&&n>1?n:null);
+      // compression for tall stacks
+      if(n>=4&&i>0){
+        const overlap=isTop?'-14px':'0';
+        const marg=isTop?'0':'-14px';
+        c.style.marginTop=overlap;
+        c.style.marginBottom=marg;
+      } else if(n===3&&i>0){
+        const overlap=isTop?'-8px':'0';
+        const marg=isTop?'0':'-8px';
+        c.style.marginTop=overlap;
+        c.style.marginBottom=marg;
+      }
+      checkers.push(c);
+    }
+    if(isTop){ checkers.forEach(c=>div.appendChild(c)); }
+    else      { checkers.slice().reverse().forEach(c=>div.appendChild(c)); }
+  }
+  return div;
+}
+
+function makeChecker(p, stackNum) {
+  const c=document.createElement('div');
+  c.className='ck '+(p==='h'?'h':'a');
+  c.textContent='🐕';
+  if(stackNum && stackNum>1){
+    const cnt=document.createElement('div');
+    cnt.className='cnt';
+    cnt.textContent=stackNum;
+    c.appendChild(cnt);
+  }
+  return c;
+}
+
+function renderBar() {
+  // AI bar (top)
+  const bai=document.getElementById('bai'); bai.innerHTML='';
+  if(G.bar.a>0){
+    const c=makeChecker('a', G.bar.a>1?G.bar.a:null);
+    bai.appendChild(c);
+  }
+  // Human bar (bottom)
+  const bhu=document.getElementById('bhu'); bhu.innerHTML='';
+  if(G.bar.h>0){
+    const c=makeChecker('h', G.bar.h>1?G.bar.h:null);
+    bhu.appendChild(c);
+  }
+  // Highlight if selected
+  const barHuEl=document.getElementById('bar-hu');
+  barHuEl.className='barsec'+(G.sel&&G.sel.src==='bar'?' hi-bar':'');
+  // Glow bar if human needs to use it
+  if(G.phase==='move'&&G.cur==='h'&&G.bar.h>0&&!(G.sel&&G.sel.src==='bar')){
+    barHuEl.style.boxShadow='0 0 10px 3px rgba(243,156,18,.6)';
+  } else { barHuEl.style.boxShadow=''; }
+}
+
+function renderBearOff() {
+  const th=document.getElementById('tray-h');
+  const ta=document.getElementById('tray-a');
+  th.innerHTML='<span class="tray-lbl">🏠 Borne off (You):</span>';
+  ta.innerHTML='<span class="tray-lbl">🏠 Borne off (AI):</span>';
+
+  for(let i=0;i<G.off.h;i++){
+    const c=makeChecker('h'); th.appendChild(c);
+  }
+  for(let i=0;i<G.off.a;i++){
+    const c=makeChecker('a'); ta.appendChild(c);
+  }
+
+  // Highlight tray if bearing off is a valid move
+  const canBear=G.vms.some(m=>m.to==='off');
+  if(canBear){
+    th.style.border='2px solid #2ecc71';
+    th.style.cursor='pointer';
+    th.onclick=clickBearOff;
+    th.title='Click to bear off!';
+  } else {
+    th.style.border='2px solid var(--bm)';
+    th.style.cursor='default';
+    th.onclick=null;
+    th.title='';
+  }
+}
+
+function renderLabels() {
+  document.getElementById('tll').innerHTML=[24,23,22,21,20,19].map(n=>`<span>${n}</span>`).join('');
+  document.getElementById('tlr').innerHTML=[18,17,16,15,14,13].map(n=>`<span>${n}</span>`).join('');
+  document.getElementById('bll').innerHTML=[ 1, 2, 3, 4, 5, 6].map(n=>`<span>${n}</span>`).join('');
+  document.getElementById('blr').innerHTML=[ 7, 8, 9,10,11,12].map(n=>`<span>${n}</span>`).join('');
+}
+
+function hint(msg){ document.getElementById('hint').textContent=msg; }
+
+// ══════════════════════════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════════════════════════
+function showModal(title,body){
+  document.getElementById('mt').textContent=title;
+  document.getElementById('mb').textContent=body;
+  document.getElementById('modal').classList.add('show');
+}
+function hideModal(){ document.getElementById('modal').classList.remove('show'); }
+
+// ══════════════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════════════
+newGame();
+</script>
+</body>
+</html>
